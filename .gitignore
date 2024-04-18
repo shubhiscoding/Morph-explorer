@@ -1,4 +1,2 @@
-# Ignore API token file
-TOKEN.txt
 .env
 .venv
