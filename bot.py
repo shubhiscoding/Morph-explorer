@@ -78,7 +78,14 @@ def process_updates(updates):
                 tokenTransaction(address, chat_id)
             else:
                 send_message(chat_id, "Please provide the address. use /help for help")
-
+        
+        if text.startswith('/EthBalance'):
+            if text.startswith('/EthBalance '):
+                address = text.split('/EthBalance ')[1].strip()
+                EthBalance(address, chat_id);
+            else:
+                send_message(chat_id, "Please provide the address. use /help for help")
+ 
 # Main function to continuously fetch and process updates
 def main():
     offset = None
@@ -169,6 +176,16 @@ def get_transaction(address, chat_id):
     else:
         send_message(chat_id, "Failed to fetch transaction information. Please try again later.")
 
+def EthBalance(address, chat_id):
+    url = f'https://explorer-api-testnet.morphl2.io/api/v2/addresses/{address}/coin-balance-history-by-day'
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        if data:
+            balance = data[len(data) - 1]['value']
+            balance = int(balance)/10**18
+            send_message(chat_id, f"Balance: {balance} Eth")
+
 def txns(data, n):
     transaction_info = "********-----List Of Transactions-----********\n\n"
     i=0;
@@ -255,7 +272,6 @@ def tokenTransaction(address, chat_id):
                 else:
                     send_message(chat_id, "Failed to fetch transaction information. Please try again later.")
             send_message(chat_id, transaction_details)
-            print(transaction_details)
         else:
             send_message(chat_id, "No transactions found for the provided address.")
     else:
@@ -269,11 +285,14 @@ def help_command(chat_id):
         "Welcome to Morph explorer\n"
         "Commands:\n"
         "/start: Start the bot\n"
-        "/GasTracker: Get gas prices\n"
+        "/help: Get help\n"
+        "/EthBalance <address>: Get Eth balance by address\n"
+        "/GetAllToken <address>: Get all tokens by address\n"
+        "/TokenTransaction <address>: Get token transactions by address\n"
         "/WalletTransaction <address>: Get transactions by address\n"
         "/TokenByAddress <address>: Get coin information by address\n"
         "/TokenByName <Name> <Type>: Get coin information by name and type (eg: /TokenByName USDT ERC-20)\n"
-        "/GetAllToken <address>: Get all tokens by address\n"
+        "/GasTracker: Get gas prices\n"
     )
     send_message(chat_id, help_text)
 
