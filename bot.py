@@ -1,8 +1,9 @@
 import requests
-
+from dotenv import load_dotenv
+import os
 # Define your token
-
-TOKEN = 'YOUR_BOT_TOKEN'
+load_dotenv()
+TOKEN = os.getenv('TOKEN')
 
 # Read the API token from a file
 with open('TOKEN.txt', 'r') as file:
