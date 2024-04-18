@@ -1,7 +1,12 @@
 import requests
 
 # Define your token
-TOKEN = '6910199544:AAFiGnsdOAf7Jcy-oaZEKHzVzKb6Oy46ukI'
+
+TOKEN = 'YOUR_BOT_TOKEN'
+
+# Read the API token from a file
+with open('TOKEN.txt', 'r') as file:
+    TOKEN = file.read().strip()
 
 # Function to get updates using long polling
 def get_updates(offset=None, limit=100, timeout=0):
