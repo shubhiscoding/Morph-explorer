@@ -34,11 +34,12 @@ def process_updates(updates):
         # Handle each update based on your bot's logic
         if text == '/start':
             send_message(chat_id, "Welcome to Morph explorer run /help to get all commands")
-        if text.startswith('/TokenByAddress '):
-            # Extract the coin address from the text
-            address = text.split('/TokenByAddress ')[1].strip()
-            find_coin(address, chat_id)
-        if text.startswith('/TokenByName'):
+        elif text.startswith('/TokenByAddress'):
+            if text.startswith('/TokenByAddress '):
+                send_message(chat_id, "Please wait, fetching data...")
+                address = text.split('/TokenByAddress ')[1].strip()
+                find_coin(address, chat_id)
+        elif text.startswith('/TokenByName'):
             # Extract the coin name and type from the text
             if text.startswith('/TokenByName '):
                 command_parts = text.split('/TokenByName ')[1].strip().split()
@@ -46,45 +47,54 @@ def process_updates(updates):
                 if len(command_parts) >= 2:
                     name = command_parts[0]
                     type = command_parts[1]
+                    send_message(chat_id, "Please wait, fetching data...")
                     find_coin_By_Name(name, type, chat_id)
                 else:
                     send_message(chat_id, "Please provide both the coin name and type. use /help for help")
             else:
                 send_message(chat_id, "Please provide both the coin name and type. use /help for help")
 
-        if text.startswith('/WalletTransaction '):
+        elif text.startswith('/WalletTransaction'):
             # Extract the coin address from the text
-            address = text.split('/WalletTransaction ')[1].strip()
-            get_transaction(address, chat_id)
+            if text.startswith('/WalletTransaction '):
+                send_message(chat_id, "Please wait, fetching data...")
+                address = text.split('/WalletTransaction ')[1].strip()
+                get_transaction(address, chat_id)
+            else:
+                send_message(chat_id, "Please provide the address. use /help for help")
 
         # Handle each update based on your bot's logic
-        if text == '/help':
+        elif text == '/help':
             help_command(chat_id)
         
-        if text == '/GasTracker':
+        elif text == '/GasTracker':
             Gas_tracker(chat_id)
         
-        if text.startswith('/GetAllToken'):
+        elif text.startswith('/GetAllToken'):
             # Extract the coin address from the text
-            if text.startswith('/GetAllToken '):    
+            if text.startswith('/GetAllToken '):  
+                send_message(chat_id, "Please wait, fetching data...")  
                 address = text.split('/GetAllToken ')[1].strip()
                 all_token(address, chat_id)
             else:
                 send_message(chat_id, "Please provide the address. use /help for help")
 
-        if text.startswith('/TokenTransaction'):
+        elif text.startswith('/TokenTransaction'):
             if text.startswith('/TokenTransaction '):
+                send_message(chat_id, "Please wait, fetching data...")
                 address = text.split('/TokenTransaction ')[1].strip()
                 tokenTransaction(address, chat_id)
             else:
                 send_message(chat_id, "Please provide the address. use /help for help")
         
-        if text.startswith('/EthBalance'):
+        elif text.startswith('/EthBalance'):
             if text.startswith('/EthBalance '):
                 address = text.split('/EthBalance ')[1].strip()
                 EthBalance(address, chat_id);
             else:
                 send_message(chat_id, "Please provide the address. use /help for help")
+        else:
+            send_message(chat_id, "Invalid command. Please use /help to see all commands")
  
 # Main function to continuously fetch and process updates
 def main():
@@ -239,9 +249,11 @@ def tokenTransaction(address, chat_id):
     if response.status_code == 200:
         data = response.json()
         if data['items']:
-            transaction_info, list = txns(data['items'], 10)
-            transaction_details = "********-----Transaction Details-----********\n\n"
+            transaction_info, list = txns(data['items'], 20)
+            transaction_details = "********-----Token Transfer Transaction (recent 5 only)-----********\n\n"
             i=0;
+            if len(list) < 0:
+                send_message(chat_id, "No recent token transfer transactions found for the provided address.")
             for item in list:
                 url = f'https://explorer-api-testnet.morphl2.io/api/v2/transactions/{item}/token-transfers?type=ERC-20%2CERC-721%2CERC-1155'
                 response = requests.get(url)
@@ -256,6 +268,18 @@ def tokenTransaction(address, chat_id):
                         smbl = data['items'][0]['token']['symbol']
                         from_address = data['items'][0]['from']['hash']
                         to_address = data['items'][0]['to']['hash']
+                        type = data['items'][0]['type']
+                        halfs = type.split('_')
+                        half1 = ''
+                        half2 = halfs[0]
+                        transfertype = ''
+                        if len(halfs) > 1:
+                            half1 = halfs[1]
+                            transfertype = half2 + ' ' + half1
+                        else:
+                            transfertype = half2
+                        if(to_address != address):
+                            from_address = address
                         value = data['items'][0]['total']['value']
                         value = int(value)/ 10 ** 18
                         if(value < 1):
@@ -264,6 +288,7 @@ def tokenTransaction(address, chat_id):
                             f"From Address: {from_address}\n"
                             f"To Address: {to_address}\n"
                             f"Value: {value} {smbl}\n"
+                            f"Type: {transfertype}\n\n"
                             f"Transaction Hash: {item}\n\n"
                         )
                         if(value > 0):
