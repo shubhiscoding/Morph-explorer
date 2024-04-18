@@ -5,10 +5,6 @@ import os
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
 
-# Read the API token from a file
-with open('TOKEN.txt', 'r') as file:
-    TOKEN = file.read().strip()
-
 # Function to get updates using long polling
 def get_updates(offset=None, limit=100, timeout=0):
     url = f'https://api.telegram.org/bot{TOKEN}/getUpdates'
