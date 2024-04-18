@@ -1,41 +1,7 @@
 import requests
-import json
-from telegram import Bot, Update
-from telegram import BotCommand, BotCommandScopeChat
-import asyncio
 
 # Define your token
 TOKEN = '6910199544:AAFiGnsdOAf7Jcy-oaZEKHzVzKb6Oy46ukI'
-
-commands = [
-    BotCommand('start', 'Start the bot'),
-    BotCommand('help', 'Get help'),
-    BotCommand('WalletTransaction', 'Get transactions by address'),
-    BotCommand('TokenByAddress', 'Get coin information by address'),
-    BotCommand('TokenByName', 'Get coin information by name and type'),
-    BotCommand('GetAllToken', 'Get all tokens by address'),
-    BotCommand('TokenTransaction', 'Get token transactions by address')
-]
-
-# Serialize commands to JSON
-commands_json = json.dumps([command.to_dict() for command in commands])
-
-# Function to set bot commands
-async def set_bot_commands(update):
-    bot = Bot(TOKEN)
-    await bot.delete_my_commands()
-    if update:
-        chat_id = update['message']['chat']['id']
-        await bot.set_my_commands(commands=[BotCommand('start', 'Start the bot')], scope=BotCommandScopeChat(chat_id=chat_id))
-    await bot.set_my_commands(commands=[command.to_dict() for command in commands])
-
-
-# Function to handle the / command
-def handle_command(update: Update, context):
-    chat_id = update.effective_chat.id
-    set_bot_commands(update)
-    context.bot.send_message(chat_id=chat_id, text="Here are the available commands:\n/start - Start the bot\n/help - Get help\n...")  # Include the full list of commands here
-
 
 # Function to get updates using long polling
 def get_updates(offset=None, limit=100, timeout=0):
@@ -57,23 +23,20 @@ def send_message(chat_id, text):
         print(f"Failed to send message. Status code: {response.status_code}")
 
 # Process updates
-async def process_updates(updates):
+def process_updates(updates):
     for update in updates:
         # Extract chat_id and text from the update
         chat_id = update.get('message', {}).get('chat', {}).get('id')
         text = update.get('message', {}).get('text')
 
         # Handle each update based on your bot's logic
-        if text == '/':
-            await set_bot_commands(update)
-            send_message(chat_id, "Here are the available commands:\n/start - Start the bot\n/help - Get help\n...")  # Include the full list of commands here
-        elif text == '/start':
-            send_message(chat_id, "Welcome to Morph explorer. Run /help to get all commands.")
-        elif text.startswith('/TokenByAddress '):
+        if text == '/start':
+            send_message(chat_id, "Welcome to Morph explorer run /help to get all commands")
+        if text.startswith('/TokenByAddress '):
             # Extract the coin address from the text
             address = text.split('/TokenByAddress ')[1].strip()
             find_coin(address, chat_id)
-        elif text.startswith('/TokenByName'):
+        if text.startswith('/TokenByName'):
             # Extract the coin name and type from the text
             if text.startswith('/TokenByName '):
                 command_parts = text.split('/TokenByName ')[1].strip().split()
@@ -83,31 +46,46 @@ async def process_updates(updates):
                     type = command_parts[1]
                     find_coin_By_Name(name, type, chat_id)
                 else:
-                    send_message(chat_id, "Please provide both the coin name and type. Use /help for help.")
+                    send_message(chat_id, "Please provide both the coin name and type. use /help for help")
             else:
-                send_message(chat_id, "Please provide both the coin name and type. Use /help for help.")
-        elif text.startswith('/WalletTransaction '):
+                send_message(chat_id, "Please provide both the coin name and type. use /help for help")
+
+        if text.startswith('/WalletTransaction '):
             # Extract the coin address from the text
             address = text.split('/WalletTransaction ')[1].strip()
             get_transaction(address, chat_id)
-        elif text == '/help':
+
+        # Handle each update based on your bot's logic
+        if text == '/help':
             help_command(chat_id)
-        elif text == '/GasTracker':
+        
+        if text == '/GasTracker':
             Gas_tracker(chat_id)
-        elif text.startswith('/GetAllToken'):
+        
+        if text.startswith('/GetAllToken'):
             # Extract the coin address from the text
             if text.startswith('/GetAllToken '):    
                 address = text.split('/GetAllToken ')[1].strip()
                 all_token(address, chat_id)
             else:
-                send_message(chat_id, "Please provide the address. Use /help for help.")
-        elif text.startswith('/TokenTransaction'):
+                send_message(chat_id, "Please provide the address. use /help for help")
+
+        if text.startswith('/TokenTransaction'):
             if text.startswith('/TokenTransaction '):
                 address = text.split('/TokenTransaction ')[1].strip()
                 tokenTransaction(address, chat_id)
             else:
-                send_message(chat_id, "Please provide the address. Use /help for help.")
+                send_message(chat_id, "Please provide the address. use /help for help")
 
+# Main function to continuously fetch and process updates
+def main():
+    offset = None
+    while True:
+        updates = get_updates(offset)
+        if updates:
+            process_updates(updates)
+            # Set the new offset to fetch only new updates next time
+            offset = updates[-1]['update_id'] + 1
 
 # Function to make API call to Morph API
 def find_coin(address, chat_id):
@@ -127,7 +105,6 @@ def find_coin(address, chat_id):
             f"No.of Holders: {data.get('holders')}"
         )
         send_message(chat_id, coin_info)
-        print(coin_info)
     else:
         send_message(chat_id, "Failed to fetch coin information")
 
@@ -282,6 +259,8 @@ def tokenTransaction(address, chat_id):
     else:
         send_message(chat_id, "Failed to fetch transaction information. Please try again later.")
 
+
+
 # Function to handle the /help command
 def help_command(chat_id):
     help_text = (
@@ -293,19 +272,8 @@ def help_command(chat_id):
         "/TokenByAddress <address>: Get coin information by address\n"
         "/TokenByName <Name> <Type>: Get coin information by name and type (eg: /TokenByName USDT ERC-20)\n"
         "/GetAllToken <address>: Get all tokens by address\n"
-        "/TokenTransaction <address>: Get token transactions by address\n"
     )
     send_message(chat_id, help_text)
 
-# Main function to continuously fetch and process updates
-async def main():
-    offset = None
-    while True:
-        updates = get_updates(offset)
-        if updates:
-            await process_updates(updates)
-            # Set the new offset to fetch only new updates next time
-            offset = updates[-1]['update_id'] + 1
-
 if __name__ == '__main__':
-    asyncio.run(main())
+    main()
